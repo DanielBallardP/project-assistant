@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Projektassistent</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <main>
+    <h1>Projektassistent</h1>
+    <div id="log" aria-live="polite"></div>
+    <form id="chat-form">
+      <textarea id="message" rows="2" maxlength="4000"
+        placeholder="Frage stellen …" required></textarea>
+      <button id="send" type="submit">Senden</button>
+      <button id="stop" type="button" hidden>Stopp</button>
+    </form>
+  </main>
+  <script src="app.js" type="module"></script>
+</body>
+</html>
