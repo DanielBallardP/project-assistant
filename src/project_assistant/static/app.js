@@ -8,13 +8,12 @@ let controller = null;
 function addMessage(cls, text = "") {
   const el = document.createElement("div");
   el.className = `msg ${cls}`;
-  el.textContent = text; // textContent, never innerHTML: model output is untrusted
+  el.textContent = text;
   log.appendChild(el);
   log.scrollTop = log.scrollHeight;
   return el;
 }
 
-// "event: error\ndata: {...}" -> { event: "error", data: {...} }
 function parseFrame(frame) {
   let event = "message";
   const dataLines = [];
@@ -43,8 +42,7 @@ async function* readSse(response) {
       buffer += decoder.decode();
       break;
     }
-    // stream: true keeps an incomplete UTF-8 character buffered until more
-    // bytes arrive; TextDecoder would otherwise replace it immediately.
+
     buffer += decoder.decode(value, { stream: true });
 
     const frames = buffer.split(/\r?\n\r?\n/);
@@ -66,6 +64,7 @@ form.addEventListener("submit", async (e) => {
   const answer = addMessage("assistant thinking");
   let reasoningDetails = null;
   let reasoningText = null;
+  let sawDone = false;
   controller = new AbortController();
   sendBtn.disabled = true;
   stopBtn.hidden = false;
@@ -82,7 +81,12 @@ form.addEventListener("submit", async (e) => {
 
     for await (const { event, data } of readSse(response)) {
       if (event === "error") {
+        sawDone = true;
         addMessage("error", data.detail ?? data.error ?? "Unknown error");
+        continue;
+      }
+      if (event === "done") {
+        sawDone = true;
         continue;
       }
       if (event === "reasoning" && typeof data.reasoning === "string") {
@@ -104,9 +108,13 @@ form.addEventListener("submit", async (e) => {
       }
       if (event === "message" && typeof data.token === "string") {
         answer.classList.remove("thinking");
+        if (reasoningDetails) reasoningDetails.open = false;
         answer.textContent += data.token;
         log.scrollTop = log.scrollHeight;
       }
+    }
+    if (!sawDone) {
+      addMessage("error", "Stream ended before completion");
     }
   } catch (err) {
     if (err.name !== "AbortError") {
@@ -118,6 +126,7 @@ form.addEventListener("submit", async (e) => {
     stopBtn.hidden = true;
     input.disabled = false;
     answer.classList.remove("thinking");
+    if (!answer.textContent) answer.remove();
     input.focus();
   }
 });

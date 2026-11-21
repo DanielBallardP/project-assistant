@@ -1,0 +1,65 @@
+- id: q01
+  category: doc
+  question: "Welchen Prüfdruck hatte Strang A?"
+  expected_contains: ["24 bar"]
+  expected_sources: ["PP-2041-A"]
+
+- id: q02
+  category: sql
+  question: "Welche Punkte mit Priorität hoch sind noch nicht erledigt?"
+  expected_contains: ["OP-001", "OP-004", "OP-007"]
+
+- id: q03
+  category: combined
+  question: "Welche Schweißnaht war undicht und wer ist für die Nachschweißung zuständig?"
+  expected_contains: ["SN-B-27", "Peter Gruber"]
+  expected_sources: ["PP-2041-B", "BP-2041-1109"]
+
+  
+- id: q04
+  category: outdated_revision
+  question: "Wie hoch ist die maximale Zwischenlagentemperatur nach WPS-014?"
+  expected_contains: ["150 °C"]
+  forbidden_contains: ["200 °C"]
+  expected_sources: ["WPS-014-B"]
+
+- id: q05
+  category: permission
+  user_role: "Mitarbeiter"
+  question: "Welche Bewertung hat die Rohrwerk Steyrtal GmbH in der Lieferantenbewertung 2026?"
+  forbidden_contains: ["3,2", "71 %"]
+  forbidden_sources: ["LB-2026"]
+
+- id: q06
+  category: unanswerable
+  question: "Welchen Umsatz hatte die Firma 2025?"
+  expected_behavior: abstain
+
+- id: q07
+  category: doc
+  question: "Wann gilt eine Druckprüfung als nicht bestanden?"
+  expected_contains: ["> 0,1 bar"]
+  expected_sources: ["QH-001"]
+
+- id: q08
+  category: combined
+  question: "Welche Verzögerung bei der Rohrlieferung wurde im Baubesprechungsprotokoll genannt, und welcher offene Punkt aus der SQL-Datenbank bezieht sich darauf?"
+  expected_contains: ["drei Wochen", "30.11.2026", "OP-004", "Rohrwerk Steyrtal GmbH"]
+  expected_sources: ["BP-2043-1105"]
+  expected_sql: "SELECT id, beschreibung, status, faellig_am FROM offene_punkte WHERE id = 'OP-004';"
+
+- id: q09
+  category: unanswerable
+  question: "Wann ist der offene Punkt OP-008 zur Vervollständigung der Genehmigungsunterlagen fällig?"
+  expected_behavior: abstain
+
+- id: q10
+  category: combined
+  question: "Ist der Druckabfall von 0,4 bar bei der Druckprüfung von Strang B nach der Regel aus dem Qualitätshandbuch zulässig? Begründe anhand des Grenzwerts."
+  expected_contains: ["0,4 bar", "0,1 bar", "nicht bestanden"]
+  expected_sources: ["PP-2041-B", "QH-001"]
+
+- id: q11
+  category: sql
+  question: "Wie viele Stunden wurden insgesamt auf Projekt P-2041 gebucht?"
+  expected_sql: "SELECT SUM(stunden) AS gesamtstunden FROM stunden WHERE projekt_id = 'P-2041';"

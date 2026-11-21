@@ -1,0 +1,198 @@
+kunden:
+  - {id: 1, name: "Alpenchemie AG", ort: "Linz"}
+  - {id: 2, name: "Stadtwerke Eisenau", ort: "Eisenau"}
+  - {id: 3, name: "Brauerei Hopfenberg", ort: "Hopfenberg"}
+  - {id: 4, name: "Datacenter Wels GmbH", ort: "Wels"}
+  - {id: 5, name: "H2 Enns Energie GmbH", ort: "Enns"}
+
+projekte:
+  - {id: "P-2041", name: "Prozessleitungen Erweiterung Halle 3", kunde_id: 1, status: "In Ausführung", projektleiter: "Hannes Brandstetter", start_datum: "2026-03-02", ende_geplant: "2027-02-26", budget_eur: 1850000}
+  - {id: "P-2043", name: "Fernwärme-Hauptleitung Abschnitt Süd", kunde_id: 2, status: "In Ausführung", projektleiter: "Sabine Wimmer", start_datum: "2026-05-04", ende_geplant: "2027-04-30", budget_eur: 2400000}
+  - {id: "P-2038", name: "Dampfleitung Brauerei", kunde_id: 3, status: "Abgeschlossen", projektleiter: "Hannes Brandstetter", start_datum: "2025-11-03", ende_geplant: "2026-06-18", budget_eur: 620000}
+  - {id: "P-2047", name: "Kühlwasserring Rechenzentrum", kunde_id: 4, status: "Planung", projektleiter: "Markus Leitner", start_datum: "2027-01-11", ende_geplant: "2027-09-30", budget_eur: 980000}
+  - {id: "P-2050", name: "Wasserstoffleitung Pilotanlage", kunde_id: 5, status: "Angebot", projektleiter: "Sabine Wimmer", start_datum: "2027-03-01", ende_geplant: "2027-12-15", budget_eur: 1300000}
+
+offene_punkte:
+  - {id: "OP-001", projekt_id: "P-2041", beschreibung: "Nachschweißung Schweißnaht SN-B-27 und Wiederholungsprüfung Strang B", prioritaet: "hoch", status: "offen", faellig_am: "2026-12-03", verantwortlich: "Peter Gruber"}
+  - {id: "OP-002", projekt_id: "P-2041", beschreibung: "Isolierung Strang A fertigstellen", prioritaet: "mittel", status: "in Arbeit", faellig_am: "2026-12-18", verantwortlich: "Fa. Thermotec"}
+  - {id: "OP-003", projekt_id: "P-2041", beschreibung: "Dokumentation der Röntgenprüfung nachreichen", prioritaet: "niedrig", status: "offen", faellig_am: "2026-12-31", verantwortlich: "Elisabeth Rainer"}
+  - {id: "OP-004", projekt_id: "P-2043", beschreibung: "Lieferverzug Rohre (Rohrwerk Steyrtal GmbH) klären", prioritaet: "hoch", status: "in Arbeit", faellig_am: "2026-11-30", verantwortlich: "Sabine Wimmer"}
+  - {id: "OP-005", projekt_id: "P-2043", beschreibung: "Baustellenzufahrt Abschnitt Süd mit der Gemeinde abstimmen", prioritaet: "mittel", status: "offen", faellig_am: "2026-12-01", verantwortlich: "Sabine Wimmer"}
+  - {id: "OP-006", projekt_id: "P-2038", beschreibung: "Restmangel Isolierung Pumpenraum", prioritaet: "niedrig", status: "erledigt", faellig_am: "2026-06-30", verantwortlich: "Hannes Brandstetter"}
+  - {id: "OP-007", projekt_id: "P-2047", beschreibung: "Hydraulische Berechnung Kühlwasserring freigeben", prioritaet: "hoch", status: "offen", faellig_am: "2026-12-10", verantwortlich: "Markus Leitner"}
+  - {id: "OP-008", projekt_id: "P-2050", beschreibung: "Genehmigungsunterlagen vervollständigen", prioritaet: "mittel", status: "offen", faellig_am: null, verantwortlich: "Sabine Wimmer"}
+
+briefs:
+  - doc_id: "PP-2041-A"
+    typ: "Prüfprotokoll"
+    title: "Druckprüfung Strang A – Halle 3"
+    projekt_id: "P-2041"
+    abteilung: "Qualität"
+    vertraulichkeit: "intern"
+    revision: "A"
+    datum: "2026-10-14"
+    facts:
+      - "Prüfmedium Wasser, Werkstoff 1.4571, Betriebsdruck 16 bar, Prüfdruck 24 bar (1,5-fach)"
+      - "Haltedauer 60 Minuten, Druckabfall 0 bar, Ergebnis: bestanden"
+      - "Die Flanschverbindungen F-12 und F-17 wurden vor der Prüfung nachgezogen"
+      - "Prüfer: Peter Gruber (Schweißaufsicht)"
+    must_contain: ["24 bar", "16 bar", "60 Minuten", "F-12", "F-17", "bestanden"]
+
+  - doc_id: "PP-2041-B"
+    typ: "Prüfprotokoll"
+    title: "Druckprüfung Strang B – Halle 3"
+    projekt_id: "P-2041"
+    abteilung: "Qualität"
+    vertraulichkeit: "intern"
+    revision: "A"
+    datum: "2026-10-21"
+    facts:
+      - "Prüfmedium Wasser, Werkstoff 1.4571, Betriebsdruck 16 bar, Prüfdruck 24 bar"
+      - "Haltedauer 60 Minuten, Druckabfall 0,4 bar, Ergebnis: nicht bestanden"
+      - "Leckage an Schweißnaht SN-B-27"
+      - "Nachschweißung durch die Schweißaufsicht, Wiederholungsprüfung am 03.12.2026"
+    must_contain: ["0,4 bar", "SN-B-27", "nicht bestanden", "03.12.2026"]
+
+  - doc_id: "WPS-014-A"
+    typ: "Schweißanweisung"
+    title: "WPS-014 WIG-Schweißen Edelstahl 1.4571"
+    projekt_id: null
+    abteilung: "Qualität"
+    vertraulichkeit: "intern"
+    revision: "A"
+    datum: "2025-05-12"
+    facts:
+      - "Verfahren WIG (141), Revision A, Werkstoff 1.4571"
+      - "Zwischenlagentemperatur maximal 200 °C"
+      - "Gültig bis 30.04.2026"
+    must_contain: ["WPS-014", "Revision A", "200 °C", "30.04.2026"]
+
+  - doc_id: "WPS-014-B"
+    typ: "Schweißanweisung"
+    title: "WPS-014 WIG-Schweißen Edelstahl 1.4571"
+    projekt_id: null
+    abteilung: "Qualität"
+    vertraulichkeit: "intern"
+    revision: "B"
+    datum: "2026-04-15"
+    facts:
+      - "Verfahren WIG (141), Werkstoff 1.4571, Revision B, gültig ab 01.05.2026"
+      - "Ersetzt Revision A"
+      - "Zwischenlagentemperatur maximal 150 °C"
+    must_contain: ["WPS-014", "Revision B", "150 °C", "01.05.2026"]
+
+  - doc_id: "BP-2041-1109"
+    typ: "Besprechungsprotokoll"
+    title: "Baubesprechung P-2041 vom 09.11.2026"
+    projekt_id: "P-2041"
+    abteilung: "Projektleitung"
+    vertraulichkeit: "intern"
+    revision: "A"
+    datum: "2026-11-09"
+    facts:
+      - "Schweißnaht SN-B-27: Nachschweißung durch Peter Gruber bis 03.12.2026, danach Wiederholung der Druckprüfung Strang B"
+      - "Isolierung Strang A bis 18.12.2026 fertigzustellen (Fa. Thermotec)"
+      - "Dokumentation der Röntgenprüfung ist noch nachzureichen (Qualitätssicherung, niedrige Priorität)"
+      - "Der Kunde Alpenchemie AG wünscht einen wöchentlichen Statusbericht"
+    must_contain: ["SN-B-27", "Peter Gruber", "03.12.2026", "18.12.2026"]
+
+  - doc_id: "BP-2043-1105"
+    typ: "Besprechungsprotokoll"
+    title: "Baubesprechung P-2043 vom 05.11.2026"
+    projekt_id: "P-2043"
+    abteilung: "Projektleitung"
+    vertraulichkeit: "intern"
+    revision: "A"
+    datum: "2026-11-05"
+    facts:
+      - "Die Rohrlieferung von Rohrwerk Steyrtal GmbH verzögert sich um drei Wochen, neuer Liefertermin 30.11.2026"
+      - "Die Baustellenzufahrt Abschnitt Süd muss mit der Gemeinde Eisenau abgestimmt werden"
+      - "Der Start der Verlegung Abschnitt Süd verschiebt sich auf 07.12.2026"
+    must_contain: ["Rohrwerk Steyrtal GmbH", "drei Wochen", "30.11.2026", "07.12.2026"]
+
+  - doc_id: "PB-2041"
+    typ: "Projektbeschreibung"
+    title: "Projektbeschreibung P-2041 Prozessleitungen Halle 3"
+    projekt_id: "P-2041"
+    abteilung: "Projektleitung"
+    vertraulichkeit: "vertraulich"
+    revision: "A"
+    datum: "2026-02-20"
+    facts:
+      - "Kunde Alpenchemie AG, Linz; Erweiterung der Prozessleitungen in Halle 3 (Strang A und Strang B)"
+      - "Werkstoff Edelstahl 1.4571, Schweißen WIG nach WPS-014"
+      - "Projektleiter Hannes Brandstetter, Laufzeit 02.03.2026 bis 26.02.2027, Budget 1.850.000 €"
+    must_contain: ["Alpenchemie AG", "Halle 3", "Hannes Brandstetter", "1.850.000"]
+
+  - doc_id: "LB-2026"
+    typ: "Lieferantenbewertung"
+    title: "Lieferantenbewertung 2026"
+    projekt_id: null
+    abteilung: "Einkauf"
+    vertraulichkeit: "vertraulich"
+    revision: "A"
+    datum: "2026-10-30"
+    facts:
+      - "Rohrwerk Steyrtal GmbH: Gesamtnote 3,2, Liefertreue 71 %"
+      - "Flanschtechnik Hofer GmbH: Gesamtnote 1,6, Liefertreue 96 %"
+      - "Empfehlung: einen Alternativlieferanten für Rohre prüfen"
+    must_contain: ["Rohrwerk Steyrtal GmbH", "3,2", "71 %", "Flanschtechnik Hofer GmbH", "1,6"]
+    
+  - doc_id: "WPS-021"
+    typ: "Schweißanweisung"
+    title: "WPS-021 MAG-Schweißen Stahl P235GH"
+    projekt_id: "P-2043"
+    abteilung: "Qualität"
+    vertraulichkeit: "intern"
+    revision: "A"
+    datum: "2026-04-20"
+    facts:
+      - "Verfahren MAG (135), Werkstoff P235GH, Revision A, gültig ab 01.05.2026"
+      - "Anwendung: Fernwärme-Hauptleitung Abschnitt Süd (Projekt P-2043)"
+      - "Zwischenlagentemperatur maximal 250 °C"
+      - "Schweißzusatz G3Si1"
+    must_contain: ["WPS-021", "Revision A", "250 °C", "01.05.2026"]
+
+  - doc_id: "PB-2043"
+    typ: "Projektbeschreibung"
+    title: "Projektbeschreibung P-2043 Fernwärme-Hauptleitung Abschnitt Süd"
+    projekt_id: "P-2043"
+    abteilung: "Projektleitung"
+    vertraulichkeit: "vertraulich"
+    revision: "A"
+    datum: "2026-04-24"
+    facts:
+      - "Kunde Stadtwerke Eisenau; Fernwärme-Hauptleitung Abschnitt Süd"
+      - "Werkstoff P235GH, Schweißen MAG nach WPS-021"
+      - "Projektleiter Sabine Wimmer, Laufzeit 04.05.2026 bis 30.04.2027, Budget 2.400.000 €"
+    must_contain: ["Stadtwerke Eisenau", "Fernwärme-Hauptleitung", "P235GH", "Sabine Wimmer", "2.400.000"]
+
+  - doc_id: "AB-2038"
+    typ: "Abnahme"
+    title: "Abnahmeprotokoll P-2038 Dampfleitung Brauerei"
+    projekt_id: "P-2038"
+    abteilung: "Projektleitung"
+    vertraulichkeit: "intern"
+    revision: "A"
+    datum: "2026-06-18"
+    facts:
+      - "Kunde Brauerei Hopfenberg; Abnahme des Projekts P-2038 am 18.06.2026"
+      - "Gewährleistung 24 Monate ab Abnahmedatum"
+      - "Ein Restmangel (Isolierung Pumpenraum) wurde festgehalten und bis 30.06.2026 behoben"
+      - "Abnahmeprotokoll von Hannes Brandstetter unterzeichnet"
+    must_contain: ["Brauerei Hopfenberg", "24 Monate", "Restmangel", "30.06.2026", "Hannes Brandstetter"]
+
+  - doc_id: "QH-001"
+    typ: "Qualitätshandbuch"
+    title: "Qualitätshandbuch, Abschnitt Druckprüfung"
+    projekt_id: null
+    abteilung: "Qualität"
+    vertraulichkeit: "intern"
+    revision: "A"
+    datum: "2025-09-01"
+    facts:
+      - "Der Prüfdruck beträgt das 1,5-fache des Betriebsdrucks"
+      - "Die Haltedauer beträgt mindestens 60 Minuten"
+      - "Ein Druckabfall über 0,1 bar gilt als nicht bestanden"
+    must_contain: ["1,5-fache", "60 Minuten", "0,1 bar", "nicht bestanden"]
+

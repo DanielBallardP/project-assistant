@@ -1,4 +1,5 @@
 from collections.abc import AsyncIterator
+from dataclasses import dataclass
 from functools import lru_cache
 from typing import Literal, Protocol
 
@@ -13,9 +14,17 @@ class ChatMessage(BaseModel):
     content: str
 
 
+@dataclass(frozen=True)
+class StreamDelta:
+    event: Literal["message", "reasoning"]
+    text: str
+
+
 class LLMClient(Protocol):
     async def chat(self, messages: list[ChatMessage]) -> str: ...
-    def chat_stream(self, messages: list[ChatMessage]) -> AsyncIterator[str]: ...
+    def chat_stream(
+        self, messages: list[ChatMessage]
+    ) -> AsyncIterator[StreamDelta]: ...
 
     # chat_stream is a plain def because it returns an AsyncIterator when called.
     # async def is used for chat(), which awaits one complete result. Declaring
@@ -37,7 +46,9 @@ class OpenAICompatibleClient:
 
         return response.choices[0].message.content or ""
 
-    async def chat_stream(self, messages: list[ChatMessage]) -> AsyncIterator[str]:
+    async def chat_stream(
+        self, messages: list[ChatMessage]
+    ) -> AsyncIterator[StreamDelta]:
         stream = await self._client.chat.completions.create(
             model=self._model,
             messages=[message.model_dump() for message in messages],
@@ -47,9 +58,16 @@ class OpenAICompatibleClient:
             if not chunk.choices:
                 continue
 
-            content = chunk.choices[0].delta.content
+            delta = chunk.choices[0].delta
+            reasoning = getattr(delta, "reasoning_content", None)
+            if not reasoning:
+                reasoning = getattr(delta, "reasoning", None)
+            if reasoning:
+                yield StreamDelta(event="reasoning", text=reasoning)
+
+            content = delta.content
             if content:
-                yield content
+                yield StreamDelta(event="message", text=content)
 
 
 @lru_cache

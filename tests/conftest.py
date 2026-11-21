@@ -3,7 +3,7 @@ from collections.abc import AsyncIterator
 
 import pytest
 
-from project_assistant.llm import ChatMessage
+from project_assistant.llm import ChatMessage, StreamDelta
 
 
 class FakeLLM:
@@ -15,10 +15,12 @@ class FakeLLM:
         self.received = messages
         return self.answer
 
-    async def chat_stream(self, messages: list[ChatMessage]) -> AsyncIterator[str]:
+    async def chat_stream(
+        self, messages: list[ChatMessage]
+    ) -> AsyncIterator[StreamDelta]:
         self.received = messages
         for word in self.answer.split():
-            yield word
+            yield StreamDelta(event="message", text=word)
             await asyncio.sleep(0)
 
 

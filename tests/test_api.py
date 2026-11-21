@@ -5,7 +5,7 @@ import openai
 from fastapi.testclient import TestClient
 
 from project_assistant.config import Settings, get_settings
-from project_assistant.llm import get_llm_client
+from project_assistant.llm import StreamDelta, get_llm_client
 from project_assistant.main import create_app, get_http_client
 
 
@@ -94,6 +94,37 @@ def test_chat_stream_returns_sse_events(fake_llm):
     assert "event: done\ndata: {}\n\n" in response.text
     assert fake_llm.received[0].role == "system"
     assert fake_llm.received[-1].role == "user"
+
+
+def test_root_returns_html(fake_llm):
+    app = create_app()
+    app.dependency_overrides[get_llm_client] = lambda: fake_llm
+    client = TestClient(app)
+
+    response = client.get("/")
+
+    assert response.status_code == 200
+    assert response.headers["content-type"].startswith("text/html")
+
+
+def test_chat_stream_returns_reasoning_events():
+    class ReasoningLLM:
+        async def chat(self, messages):
+            return ""
+
+        async def chat_stream(self, messages):
+            yield StreamDelta(event="reasoning", text="Ich prüfe")
+            yield StreamDelta(event="message", text="Die Antwort")
+
+    app = create_app()
+    app.dependency_overrides[get_llm_client] = lambda: ReasoningLLM()
+    client = TestClient(app)
+
+    response = client.post("/chat/stream", json={"message": "Hallo"})
+
+    assert response.status_code == 200
+    assert 'event: reasoning\ndata: {"reasoning": "Ich prüfe"}' in response.text
+    assert 'data: {"token": "Die Antwort"}' in response.text
 
 
 def test_chat_stream_emits_error_event_when_llm_fails():
