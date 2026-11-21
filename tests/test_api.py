@@ -115,5 +115,5 @@ def test_chat_stream_emits_error_event_when_llm_fails():
 
     assert response.status_code == 200
     assert "event: error" in response.text
-    assert "LLM server unreachable" in response.text
+    assert "LLM server error: Connection error." in response.text
     assert "event: done" not in response.text
