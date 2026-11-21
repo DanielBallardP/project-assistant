@@ -12,8 +12,9 @@ class Settings(BaseSettings):
 
     app_name: str = "Project Assistant"
     llm_base_url: str = "http://localhost:1234/v1"
-    llm_model: str = "qwen3-14b-claude-4.5-opus-high-reasoning-distill"
+    llm_model: str = "qwen/qwen3.6-35b-a3b"
     embedding_model: str = "text-embedding-bge-m3"
+    reasoning_level: str = "high"
 
 
 @lru_cache

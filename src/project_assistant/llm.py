@@ -1,7 +1,11 @@
+from collections.abc import AsyncIterator
+from functools import lru_cache
 from typing import Literal, Protocol
 
 from openai import AsyncOpenAI
 from pydantic import BaseModel
+
+from project_assistant.config import get_settings
 
 
 class ChatMessage(BaseModel):
@@ -11,6 +15,11 @@ class ChatMessage(BaseModel):
 
 class LLMClient(Protocol):
     async def chat(self, messages: list[ChatMessage]) -> str: ...
+    def chat_stream(self, messages: list[ChatMessage]) -> AsyncIterator[str]: ...
+
+    # chat_stream is a plain def because it returns an AsyncIterator when called.
+    # async def is used for chat(), which awaits one complete result. Declaring
+    # chat_stream as async def would instead make the caller await a coroutine.
 
 
 class OpenAICompatibleClient:
@@ -28,24 +37,31 @@ class OpenAICompatibleClient:
 
         return response.choices[0].message.content or ""
 
+    async def chat_stream(self, messages: list[ChatMessage]) -> AsyncIterator[str]:
+        stream = await self._client.chat.completions.create(
+            model=self._model,
+            messages=[message.model_dump() for message in messages],
+            stream=True,
+        )
+        async for chunk in stream:
+            if not chunk.choices:
+                continue
 
-class FakeLLM:
-    """Deterministic LLM client for tests and local development."""
-
-    def __init__(self, answer: str = "Dies ist eine simulierte Antwort.") -> None:
-        self.answer = answer
-        self.received: list[ChatMessage] = []
-
-    async def chat(self, messages: list[ChatMessage]) -> str:
-        self.received = messages
-        return self.answer
+            content = chunk.choices[0].delta.content
+            if content:
+                yield content
 
 
+@lru_cache
 def get_llm_client() -> LLMClient:
-    from project_assistant.config import get_settings
+    """Return a shared client so requests reuse AsyncOpenAI's HTTP connection pool.
 
+    FastAPI calls dependencies for each request; caching avoids constructing a
+    new client and connection pool every time. If LLM settings change at
+    runtime, clear this cache and the settings cache before creating a client.
+    """
     settings = get_settings()
-    # Not caching with lru_cache because the settings may change during runtime, and we want to reflect those changes.
+
     return OpenAICompatibleClient(
         base_url=settings.llm_base_url, model=settings.llm_model
     )

@@ -1,9 +1,11 @@
+import json
 from collections.abc import AsyncIterator
 from typing import Annotated
 
 import httpx
 import openai
 from fastapi import Depends, FastAPI, HTTPException
+from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
 
 from project_assistant import prompts
@@ -22,6 +24,7 @@ class HealthResponse(BaseModel):
     llm_base_url: str
     llm_model: str
     embedding_model: str
+    reasoning_level: str
 
 
 class ChatRequest(BaseModel):
@@ -35,7 +38,7 @@ class ChatResponse(BaseModel):
 def create_app() -> FastAPI:
     app = FastAPI(title="Project Assistant")
 
-    @app.get("/health", response_model=HealthResponse)
+    @app.get("/health")
     def health(settings: Annotated[Settings, Depends(get_settings)]) -> HealthResponse:
         return HealthResponse(
             status="ok",
@@ -43,9 +46,10 @@ def create_app() -> FastAPI:
             llm_base_url=settings.llm_base_url,
             llm_model=settings.llm_model,
             embedding_model=settings.embedding_model,
+            reasoning_level=settings.reasoning_level,
         )
 
-    @app.get("/health/llm", response_model=list[str])
+    @app.get("/health/llm")
     async def health_llm(
         settings: Annotated[Settings, Depends(get_settings)],
         client: Annotated[httpx.AsyncClient, Depends(get_http_client)],
@@ -53,32 +57,70 @@ def create_app() -> FastAPI:
         try:
             response = await client.get(f"{settings.llm_base_url}/models")
             response.raise_for_status()
-
         except httpx.HTTPError as exc:
             raise HTTPException(
                 status_code=503, detail=f"LLM server unreachable: {exc}"
             ) from exc
-
         return [model["id"] for model in response.json()["data"]]
 
-    @app.post("/chat", response_model=ChatResponse)
+    @app.post("/chat")
     async def chat(
         request: ChatRequest,
         llm: Annotated[LLMClient, Depends(get_llm_client)],
     ) -> ChatResponse:
+        messages = [
+            ChatMessage(role="system", content=prompts.SYSTEM_PROMPT),
+            ChatMessage(role="user", content=request.message),
+        ]
         try:
-            llm_messages = [
-                {"role": "system", "content": prompts.SYSTEM_PROMPT},
-                {"role": "user", "content": request.message},
-            ]
-            llm_response = await llm.chat([ChatMessage(**msg) for msg in llm_messages])
-
+            answer = (await llm.chat(messages)).strip()
         except openai.APIConnectionError as exc:
             raise HTTPException(
                 status_code=503, detail=f"LLM server unreachable: {exc}"
             ) from exc
+        except openai.APIStatusError as exc:
+            raise HTTPException(
+                status_code=502, detail=f"LLM server error: {exc}"
+            ) from exc
+        except openai.APIError as exc:
+            raise HTTPException(
+                status_code=502, detail=f"LLM server error: {exc}"
+            ) from exc
+        return ChatResponse(answer=answer)
 
-        return ChatResponse(answer=llm_response)
+    @app.post("/chat/stream")
+    async def chat_stream(
+        request: ChatRequest,
+        llm: Annotated[LLMClient, Depends(get_llm_client)],
+    ) -> StreamingResponse:
+        messages = [
+            ChatMessage(role="system", content=prompts.SYSTEM_PROMPT),
+            ChatMessage(role="user", content=request.message),
+        ]
+
+        def sse(event: str | None, data: dict) -> str:
+            """Format a Server-Sent Event (SSE) string.
+
+            If event is None, the default "message" event type is used.
+            """
+            event_line = f"event: {event}\n" if event else ""
+            data_line = f"data: {json.dumps(data, ensure_ascii=False)}\n"
+            return f"{event_line}{data_line}\n"
+
+        async def event_source() -> AsyncIterator[str]:
+            try:
+                async for token in llm.chat_stream(messages):
+                    if token:
+                        # JSON escaping keeps newline characters inside one SSE data line.
+                        yield f"data: {json.dumps({'token': token}, ensure_ascii=False)}\n\n"
+            except openai.APIError as exc:
+                detail = f"LLM server error: {exc}"
+                yield sse(event="error", data={"error": detail})
+                return
+
+            yield sse(event="done", data={})
+
+        return StreamingResponse(event_source(), media_type="text/event-stream")
 
     return app
 
