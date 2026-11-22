@@ -20,15 +20,86 @@ class StreamDelta:
     text: str
 
 
+class EmbeddingClient(Protocol):
+    async def embed_documents(self, texts: list[str]) -> list[list[float]]: ...
+    async def embed_query(self, text: str) -> list[float]: ...
+
+
+class OpenAICompatibleEmbeddings:
+    def __init__(
+        self,
+        base_url: str,
+        model: str,
+        query_prefix: str = "",
+        document_prefix: str = "",
+        api_key: str = "not-needed",
+        batch_size: int = 32,
+    ) -> None:
+        if batch_size <= 0:
+            raise ValueError("batch_size must be greater than zero")
+
+        self._client = AsyncOpenAI(base_url=base_url, api_key=api_key)
+        self._model = model
+        self._query_prefix = query_prefix
+        self._document_prefix = document_prefix
+        self._batch_size = batch_size
+
+    async def _embed(self, texts: list[str]) -> list[list[float]]:
+        vectors: list[list[float] | None] = [None] * len(texts)
+
+        for start in range(0, len(texts), self._batch_size):
+            batch = texts[start : start + self._batch_size]
+            response = await self._client.embeddings.create(
+                model=self._model,
+                input=batch,
+            )
+
+            for item in response.data:
+                index = item.index
+                if index < 0 or index >= len(batch):
+                    raise RuntimeError(
+                        f"Embedding response index {index} is outside the batch"
+                    )
+                vectors[start + index] = list(item.embedding)
+
+        if any(vector is None for vector in vectors):
+            raise RuntimeError(
+                "Embedding response did not contain a vector for every input"
+            )
+
+        return [vector for vector in vectors if vector is not None]
+
+    async def embed_documents(self, texts: list[str]) -> list[list[float]]:
+        return await self._embed([f"{self._document_prefix}{text}" for text in texts])
+
+    async def embed_query(self, text: str) -> list[float]:
+        vectors = await self._embed([f"{self._query_prefix}{text}"])
+        return vectors[0]
+
+
+@lru_cache
+def get_embedding_client() -> EmbeddingClient:
+    """Return a shared embedding client so requests reuse AsyncOpenAI's HTTP connection pool.
+
+    FastAPI calls dependencies for each request; caching avoids constructing a
+    new client and connection pool every time. If LLM settings change at
+    runtime, clear this cache and the settings cache before creating a client.
+    """
+    settings = get_settings()
+
+    return OpenAICompatibleEmbeddings(
+        base_url=settings.llm_base_url,
+        model=settings.embedding_model,
+        query_prefix=settings.embedding_query_prefix,
+        document_prefix=settings.embedding_document_prefix,
+    )
+
+
 class LLMClient(Protocol):
     async def chat(self, messages: list[ChatMessage]) -> str: ...
     def chat_stream(
         self, messages: list[ChatMessage]
     ) -> AsyncIterator[StreamDelta]: ...
-
-    # chat_stream is a plain def because it returns an AsyncIterator when called.
-    # async def is used for chat(), which awaits one complete result. Declaring
-    # chat_stream as async def would instead make the caller await a coroutine.
 
 
 class OpenAICompatibleClient:
@@ -81,5 +152,6 @@ def get_llm_client() -> LLMClient:
     settings = get_settings()
 
     return OpenAICompatibleClient(
-        base_url=settings.llm_base_url, model=settings.llm_model
+        base_url=settings.llm_base_url,
+        model=settings.llm_model,
     )

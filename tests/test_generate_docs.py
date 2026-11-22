@@ -25,6 +25,20 @@ def test_missing_facts_ignores_capitalization():
     assert missing_facts("Ergebnis bestanden bei 24 bar.", brief) == []
 
 
+def test_missing_facts_normalizes_nonbreaking_whitespace():
+    brief = {
+        "must_contain": [
+            "Prüfdruck\u00a024 bar",
+            "Haltedauer\u202f60 Minuten",
+        ]
+    }
+
+    assert (
+        missing_facts("Prüfdruck\u202f 24 bar; Haltedauer\u00a060 Minuten.", brief)
+        == []
+    )
+
+
 def test_clean_body_strips_whitespace_and_markdown_fence():
     assert generate_docs.clean_body(" \n```markdown\n# Bericht\n\nInhalt\n```\n ") == (
         "# Bericht\n\nInhalt"
@@ -75,7 +89,9 @@ def test_main_continues_after_generation_failure_and_reports_failed_ids(
         "get_settings",
         lambda: SimpleNamespace(llm_base_url="http://unused", llm_model="unused"),
     )
-    monkeypatch.setattr(generate_docs, "OpenAICompatibleClient", lambda *_args: object())
+    monkeypatch.setattr(
+        generate_docs, "OpenAICompatibleClient", lambda *_args: object()
+    )
 
     async def fake_generate(_client, brief):
         if brief["doc_id"] == "FAIL":

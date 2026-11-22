@@ -54,12 +54,17 @@ def front_matter(brief: dict) -> str:
     return f"---\n{yaml_block}\n---"
 
 
+def _normalize_whitespace(text: str) -> str:
+    text = text.replace("\u00a0", " ").replace("\u202f", " ")
+    return " ".join(text.split())
+
+
 def missing_facts(text: str, brief: dict) -> list[str]:
-    normalized_text = text.casefold()
+    normalized_text = _normalize_whitespace(text).casefold()
     return [
         fact
         for fact in brief["must_contain"]
-        if fact.casefold() not in normalized_text
+        if _normalize_whitespace(fact).casefold() not in normalized_text
     ]
 
 
@@ -132,7 +137,7 @@ async def main(only: str | None, force: bool) -> None:
             body = clean_body(await generate(client, brief))
         except RuntimeError as error:
             failed_ids.append(brief["doc_id"])
-            print(f'{brief["doc_id"]}: fehlgeschlagen: {error}')
+            print(f"{brief['doc_id']}: fehlgeschlagen: {error}")
             continue
         elapsed = time.perf_counter() - started
         output_file.write_text(
@@ -143,6 +148,7 @@ async def main(only: str | None, force: bool) -> None:
 
     summary = ", ".join(failed_ids) if failed_ids else "keine"
     print(f"Fehlgeschlagene Dokumente: {summary}")
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()

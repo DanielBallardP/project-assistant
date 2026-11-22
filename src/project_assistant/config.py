@@ -13,8 +13,11 @@ class Settings(BaseSettings):
     app_name: str = "Project Assistant"
     llm_base_url: str = "http://localhost:1234/v1"
     llm_model: str = "qwen/qwen3.6-35b-a3b"
-    embedding_model: str = "text-embedding-bge-m3"
     reasoning_level: str = "high"
+
+    embedding_model: str = "text-embedding-bge-m3"
+    embedding_query_prefix: str = "search_query: "
+    embedding_document_prefix: str = "search_document: "
 
 
 @lru_cache
