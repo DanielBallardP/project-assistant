@@ -11,3 +11,4 @@ wheels/
 
 # Misc files
 .env
+data/chroma/

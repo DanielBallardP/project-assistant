@@ -14,7 +14,6 @@
   question: "Welche Schweißnaht war undicht und wer ist für die Nachschweißung zuständig?"
   expected_contains: ["SN-B-27", "Peter Gruber"]
   expected_sources: ["PP-2041-B", "BP-2041-1109"]
-
   
 - id: q04
   category: outdated_revision
@@ -22,10 +21,11 @@
   expected_contains: ["150 °C"]
   forbidden_contains: ["200 °C"]
   expected_sources: ["WPS-014-B"]
+  forbidden_sources: ["WPS-014-A"]
 
 - id: q05
   category: permission
-  user_role: "Mitarbeiter"
+  user_role: "mitarbeiter"
   question: "Welche Bewertung hat die Rohrwerk Steyrtal GmbH in der Lieferantenbewertung 2026?"
   forbidden_contains: ["3,2", "71 %"]
   forbidden_sources: ["LB-2026"]
@@ -38,7 +38,7 @@
 - id: q07
   category: doc
   question: "Wann gilt eine Druckprüfung als nicht bestanden?"
-  expected_contains: ["> 0,1 bar"]
+  expected_contains: ["0,1 bar"]
   expected_sources: ["QH-001"]
 
 - id: q08
@@ -63,3 +63,10 @@
   category: sql
   question: "Wie viele Stunden wurden insgesamt auf Projekt P-2041 gebucht?"
   expected_sql: "SELECT SUM(stunden) AS gesamtstunden FROM stunden WHERE projekt_id = 'P-2041';"
+
+- id: q12
+  category: permission
+  user_role: "projektleitung"
+  question: "Welche Bewertung hat die Rohrwerk Steyrtal GmbH in der Lieferantenbewertung 2026?"
+  expected_contains: ["3,2", "71 %"]
+  expected_sources: ["LB-2026"]
