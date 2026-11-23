@@ -9,6 +9,7 @@
   question: "Welche Punkte mit Priorität hoch sind noch nicht erledigt?"
   expected_contains: ["OP-001", "OP-004", "OP-007"]
 
+# known issue: compound query, will be fixed by agent decomposition at later time
 - id: q03
   category: combined
   question: "Welche Schweißnaht war undicht und wer ist für die Nachschweißung zuständig?"
