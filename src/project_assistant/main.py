@@ -1,25 +1,46 @@
 import json
-from collections.abc import AsyncIterator
+import logging
+from collections.abc import AsyncIterator, Callable
 from pathlib import Path
-from typing import Annotated
+from typing import Annotated, Literal
 
 import httpx
 import openai
-from fastapi import Depends, FastAPI, HTTPException
+from chromadb.errors import ChromaError
+from fastapi import Depends, FastAPI, Header, HTTPException
 from fastapi.responses import StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
 from project_assistant import prompts
 from project_assistant.config import Settings, get_settings
-from project_assistant.llm import ChatMessage, LLMClient, StreamDelta, get_llm_client
+from project_assistant.llm import (
+    ChatMessage,
+    EmbeddingClient,
+    LLMClient,
+    StreamDelta,
+    get_embedding_client,
+    get_llm_client,
+)
+from project_assistant.rag.answering import build_messages, to_sources
+from project_assistant.rag.retrieval import retrieve
+from project_assistant.rag.store import VectorStore
 
 STATIC_DIR = Path(__file__).parent / "static"
+logger = logging.getLogger(__name__)
 
 
 async def get_http_client() -> AsyncIterator[httpx.AsyncClient]:
     async with httpx.AsyncClient(timeout=5.0) as client:
         yield client
+
+
+def get_vector_store_factory(
+    settings: Annotated[Settings, Depends(get_settings)],
+) -> Callable[[], VectorStore]:
+    return lambda: VectorStore(
+        settings.chroma_path, settings.collection_name, settings.embedding_model
+    )
 
 
 class HealthResponse(BaseModel):
@@ -96,12 +117,17 @@ def create_app() -> FastAPI:
     async def chat_stream(
         request: ChatRequest,
         llm: Annotated[LLMClient, Depends(get_llm_client)],
+        embeddings: Annotated[EmbeddingClient, Depends(get_embedding_client)],
+        store_factory: Annotated[
+            Callable[[], VectorStore], Depends(get_vector_store_factory)
+        ],
+        # Temporary only: a client-sent role is not security. Replace with the
+        # role from the Entra token at later stage.
+        role: Annotated[
+            Literal["mitarbeiter", "projektleitung"],
+            Header(alias="X-Demo-Role"),
+        ] = "mitarbeiter",
     ) -> StreamingResponse:
-        messages = [
-            ChatMessage(role="system", content=prompts.SYSTEM_PROMPT),
-            ChatMessage(role="user", content=request.message),
-        ]
-
         def sse(event: str | None, data: dict) -> str:
             """Format a Server-Sent Event (SSE) string.
 
@@ -112,6 +138,36 @@ def create_app() -> FastAPI:
             return f"{event_line}{data_line}\n"
 
         async def event_source() -> AsyncIterator[str]:
+            try:
+                store = store_factory()
+                hits = await retrieve(
+                    request.message,
+                    embeddings=embeddings,
+                    store=store,
+                    role=role,
+                )
+            except (
+                ChromaError,
+                IndexError,
+                KeyError,
+                openai.APIError,
+                RuntimeError,
+                TypeError,
+                ValueError,
+            ):
+                logger.exception("Document retrieval failed")
+                yield sse(
+                    event="error",
+                    data={"error": "Document retrieval failed. Please try again."},
+                )
+                return
+
+            messages = build_messages(request.message, hits, get_settings().answer_system_prompt)
+            yield sse(
+                event="sources",
+                data={"sources": [source.model_dump() for source in to_sources(hits)]},
+            )
+
             try:
                 async for delta in llm.chat_stream(messages):
                     if isinstance(delta, str):
@@ -134,9 +190,12 @@ def create_app() -> FastAPI:
                     else:
                         # JSON escaping keeps newline characters inside one SSE data line.
                         yield f"data: {json.dumps({'token': delta.text}, ensure_ascii=False)}\n\n"
-            except openai.APIError as exc:
-                detail = f"LLM server error: {exc}"
-                yield sse(event="error", data={"error": detail})
+            except openai.APIError:
+                logger.exception("LLM streaming failed")
+                yield sse(
+                    event="error",
+                    data={"error": "The language model could not generate a response."},
+                )
                 return
 
             yield sse(event="done", data={})

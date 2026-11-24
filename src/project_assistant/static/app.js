@@ -4,6 +4,7 @@ const log = document.querySelector("#log");
 const sendBtn = document.querySelector("#send");
 const stopBtn = document.querySelector("#stop");
 let controller = null;
+let nextSourceChipId = 0;
 
 function addMessage(cls, text = "") {
   const el = document.createElement("div");
@@ -12,6 +13,34 @@ function addMessage(cls, text = "") {
   log.appendChild(el);
   log.scrollTop = log.scrollHeight;
   return el;
+}
+
+function renderAnswerText(container, text, sourceChips) {
+  if (!sourceChips.size) {
+    container.textContent = text;
+    return;
+  }
+
+  container.replaceChildren();
+  const citations = /\[([^\]\r\n]+)\]/g;
+  let cursor = 0;
+
+  for (const match of text.matchAll(citations)) {
+    const chip = sourceChips.get(match[1]);
+    if (!chip) continue;
+
+    const start = match.index;
+    container.append(document.createTextNode(text.slice(cursor, start)));
+
+    const citation = document.createElement("a");
+    citation.className = "citation";
+    citation.href = `#${chip.id}`;
+    citation.textContent = match[0];
+    container.append(citation);
+    cursor = start + match[0].length;
+  }
+
+  container.append(document.createTextNode(text.slice(cursor)));
 }
 
 function parseFrame(frame) {
@@ -62,6 +91,12 @@ form.addEventListener("submit", async (e) => {
   addMessage("user", message);
   input.value = "";
   const answer = addMessage("assistant thinking");
+  const answerTextElement = document.createElement("div");
+  answer.append(answerTextElement);
+  const sourcesElement = document.createElement("div");
+  sourcesElement.className = "sources";
+  const sourceChips = new Map();
+  let answerText = "";
   let reasoningDetails = null;
   let reasoningText = null;
   let sawDone = false;
@@ -89,6 +124,36 @@ form.addEventListener("submit", async (e) => {
         sawDone = true;
         continue;
       }
+      if (event === "sources") {
+        sourceChips.clear();
+        sourcesElement.replaceChildren();
+
+        if (Array.isArray(data.sources)) {
+          for (const source of data.sources) {
+            if (
+              !source ||
+              typeof source.doc_id !== "string" ||
+              typeof source.revision !== "string" ||
+              sourceChips.has(source.doc_id)
+            ) {
+              continue;
+            }
+
+            const chip = document.createElement("span");
+            chip.className = "source-chip";
+            chip.id = `source-chip-${nextSourceChipId++}`;
+            chip.textContent = `${source.doc_id} · Rev. ${source.revision}`;
+            sourcesElement.append(chip);
+            sourceChips.set(source.doc_id, chip);
+          }
+        }
+
+        if (sourceChips.size) {
+          answer.append(sourcesElement);
+          renderAnswerText(answerTextElement, answerText, sourceChips);
+        }
+        continue;
+      }
       if (event === "reasoning" && typeof data.reasoning === "string") {
         if (!reasoningDetails) {
           reasoningDetails = document.createElement("details");
@@ -109,7 +174,8 @@ form.addEventListener("submit", async (e) => {
       if (event === "message" && typeof data.token === "string") {
         answer.classList.remove("thinking");
         if (reasoningDetails) reasoningDetails.open = false;
-        answer.textContent += data.token;
+        answerText += data.token;
+        renderAnswerText(answerTextElement, answerText, sourceChips);
         log.scrollTop = log.scrollHeight;
       }
     }
@@ -126,7 +192,7 @@ form.addEventListener("submit", async (e) => {
     stopBtn.hidden = true;
     input.disabled = false;
     answer.classList.remove("thinking");
-    if (!answer.textContent) answer.remove();
+    if (!answerText && !sourceChips.size) answer.remove();
     input.focus();
   }
 });
