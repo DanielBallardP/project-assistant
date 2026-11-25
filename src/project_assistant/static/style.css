@@ -10,6 +10,27 @@ main { max-width: 48rem; margin: 0 auto; padding: 1rem; display: flex;
 .sources { display: flex; flex-wrap: wrap; gap: .35rem; margin-top: .65rem; white-space: normal; }
 .source-chip { border: 1px solid color-mix(in srgb, currentColor 25%, transparent);
                border-radius: 999px; padding: .15rem .5rem; font-size: .75rem; opacity: .8; }
+.source-chip.cited {
+  background: #eff6ff;
+  border-color: #2563eb;
+}
+
+@keyframes chip-flash {
+  from { background: #fff3b0; }
+}
+.source-chip.flash {
+  animation: chip-flash 1.5s ease-out;
+}
+
+.sources-note,
+.more-sources {
+  flex-basis: 100%;
+  font-size: 0.8rem;
+  color: #666;
+}
+.more-sources summary {
+  cursor: pointer;
+}               
 .citation { color: inherit; text-decoration: underline; text-underline-offset: .15em; }
 .reasoning { align-self: flex-start; max-width: 85%; border: 1px solid color-mix(in srgb, currentColor 20%, transparent); border-radius: .75rem; padding: .6rem .9rem; }
 .reasoning summary { cursor: pointer; font-weight: 600; }

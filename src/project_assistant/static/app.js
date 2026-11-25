@@ -43,6 +43,46 @@ function renderAnswerText(container, text, sourceChips) {
   container.append(document.createTextNode(text.slice(cursor)));
 }
 
+function applyCitations(answer, sourcesElement, sourceChips, { cited = [], abstained = false }) {
+  if (!sourceChips.size) return;
+
+  const citedIds = new Set(cited);
+  const citedChips = [];
+  const otherChips = [];
+  for (const [docId, chip] of sourceChips) {
+    if (citedIds.has(docId)) {
+      chip.classList.add("cited");
+      citedChips.push(chip);
+    } else {
+      otherChips.push(chip);
+    }
+  }
+
+  sourcesElement.replaceChildren();
+
+  if (!citedChips.length) {
+    const note = document.createElement("div");
+    note.className = "sources-note";
+    note.textContent = abstained
+      ? "Keine passende Quelle gefunden."
+      : "Die Antwort nennt keine Quelle.";
+    sourcesElement.append(note);
+  }
+  sourcesElement.append(...citedChips);
+
+  if (otherChips.length) {
+    const more = document.createElement("details");
+    more.className = "more-sources";
+    const summary = document.createElement("summary");
+    const label = citedChips.length ? "Weitere durchsuchte" : "Durchsuchte";
+    summary.textContent = `${label} Dokumente (${otherChips.length})`;
+    more.append(summary, ...otherChips);
+    sourcesElement.append(more);
+  }
+
+  answer.append(sourcesElement);
+}
+
 function parseFrame(frame) {
   let event = "message";
   const dataLines = [];
@@ -124,6 +164,11 @@ form.addEventListener("submit", async (e) => {
         sawDone = true;
         continue;
       }
+      if (event === "citations") {
+        applyCitations(answer, sourcesElement, sourceChips, data);
+        log.scrollTop = log.scrollHeight;
+        continue;
+      }
       if (event === "sources") {
         sourceChips.clear();
         sourcesElement.replaceChildren();
@@ -148,10 +193,6 @@ form.addEventListener("submit", async (e) => {
           }
         }
 
-        if (sourceChips.size) {
-          answer.append(sourcesElement);
-          renderAnswerText(answerTextElement, answerText, sourceChips);
-        }
         continue;
       }
       if (event === "reasoning" && typeof data.reasoning === "string") {
@@ -192,7 +233,7 @@ form.addEventListener("submit", async (e) => {
     stopBtn.hidden = true;
     input.disabled = false;
     answer.classList.remove("thinking");
-    if (!answerText && !sourceChips.size) answer.remove();
+    if (!answerText) answer.remove();
     input.focus();
   }
 });
@@ -202,6 +243,21 @@ input.addEventListener("keydown", (event) => {
     event.preventDefault();
     form.requestSubmit();
   }
+});
+
+log.addEventListener("click", (event) => {
+  const link = event.target.closest("a.citation");
+  if (!link) return;
+
+  event.preventDefault();
+  const chip = document.getElementById(link.getAttribute("href").slice(1));
+  if (!chip) return;
+
+  chip.scrollIntoView({ block: "nearest", behavior: "smooth" });
+  chip.classList.add("flash");
+  chip.addEventListener("animationend", () => chip.classList.remove("flash"), {
+    once: true,
+  });
 });
 
 stopBtn.addEventListener("click", () => controller?.abort());
