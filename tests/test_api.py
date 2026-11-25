@@ -9,6 +9,7 @@ from project_assistant.config import Settings, get_settings
 from project_assistant.llm import StreamDelta, get_embedding_client, get_llm_client
 from project_assistant.main import create_app, get_http_client, get_vector_store_factory
 from project_assistant.rag.store import Hit
+from project_assistant.rag.answering import ABSTAIN_ANSWER
 
 main_module = import_module("project_assistant.main")
 
@@ -43,8 +44,31 @@ class FakeVectorStore:
         ]
 
 
-def install_fake_rag(app):
-    store = FakeVectorStore()
+class EmptyVectorStore:
+    """A store that finds nothing, for the 'no hits' case."""
+
+    def query(self, *, embedding: list[float], k: int, where: dict) -> list[Hit]:
+        return []
+
+
+class ScriptedLLM:
+    """Streams one fixed answer and records whether it was called at all."""
+
+    def __init__(self, answer: str) -> None:
+        self.answer = answer
+        self.received: list = []
+
+    async def chat(self, messages):
+        return self.answer
+
+    async def chat_stream(self, messages):
+        self.received = messages
+        yield StreamDelta(text=self.answer)
+
+
+def install_fake_rag(app, store = None):
+    if store is None:
+        store = FakeVectorStore()
     app.dependency_overrides[get_embedding_client] = FakeEmbeddings
     app.dependency_overrides[get_vector_store_factory] = lambda: lambda: store
     return store
@@ -276,7 +300,7 @@ def test_chat_stream_emits_error_event_when_llm_fails():
             raise openai.APIConnectionError(
                 request=httpx.Request("POST", "http://llm.test/v1/chat/completions")
             )
-            yield ""
+            yield StreamDelta(text="")
 
     app = create_app()
     app.dependency_overrides[get_llm_client] = lambda: FailingStreamLLM()
@@ -292,4 +316,79 @@ def test_chat_stream_emits_error_event_when_llm_fails():
         in response.text
     )
     assert "Connection error." not in response.text
+    assert "event: done" not in response.text
+
+
+def post_question(llm, store=None):
+    app = create_app()
+    app.dependency_overrides[get_llm_client] = lambda: llm
+    install_fake_rag(app, store)
+    return TestClient(app).post("/chat/stream", json={"message": "Hallo"})
+
+
+def test_chat_stream_emits_citations_for_documents_the_answer_cites():
+    response = post_question(ScriptedLLM("Das steht in [DOC-1]."))
+
+    assert (
+        'event: citations\ndata: {"cited": ["DOC-1"], "abstained": false}'
+        in response.text
+    )
+    assert response.text.index("event: citations") < response.text.index("event: done")
+
+
+def test_chat_stream_marks_abstain_answer_without_citations():
+    response = post_question(ScriptedLLM(ABSTAIN_ANSWER))
+
+    assert (
+        'event: citations\ndata: {"cited": [], "abstained": true}' in response.text
+    )
+
+
+def test_chat_stream_answer_without_citation_is_not_an_abstain():
+    response = post_question(ScriptedLLM("Irgendeine Antwort."))
+
+    assert (
+        'event: citations\ndata: {"cited": [], "abstained": false}' in response.text
+    )
+
+
+def test_chat_stream_ignores_cited_ids_that_were_never_retrieved():
+    response = post_question(ScriptedLLM("Laut [XX-9] ist das so."))
+
+    assert (
+        'event: citations\ndata: {"cited": [], "abstained": false}' in response.text
+    )
+
+
+def test_chat_stream_without_hits_abstains_and_never_calls_the_llm():
+    llm = ScriptedLLM("Darf nie aufgerufen werden.")
+
+    response = post_question(llm, store=EmptyVectorStore())
+
+    assert llm.received == []
+    assert 'event: sources\ndata: {"sources": []}' in response.text
+    assert f'data: {{"token": "{ABSTAIN_ANSWER}"}}' in response.text
+    assert (
+        'event: citations\ndata: {"cited": [], "abstained": true}' in response.text
+    )
+    assert "event: done\ndata: {}\n\n" in response.text
+
+
+def test_chat_stream_hides_unexpected_llm_errors_from_the_client():
+    class BrokenLLM:
+        async def chat(self, messages):
+            return ""
+
+        async def chat_stream(self, messages):
+            raise RuntimeError("secret internals")
+            yield StreamDelta(text="")
+
+    response = post_question(BrokenLLM())
+
+    assert (
+        'data: {"error": "The language model could not generate a response."}'
+        in response.text
+    )
+    assert "secret internals" not in response.text
+    assert "event: citations" not in response.text
     assert "event: done" not in response.text

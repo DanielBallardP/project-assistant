@@ -1,5 +1,4 @@
 from collections.abc import AsyncIterator
-from dataclasses import dataclass
 from functools import lru_cache
 from typing import Literal, Protocol
 
@@ -14,9 +13,8 @@ class ChatMessage(BaseModel):
     content: str
 
 
-@dataclass(frozen=True)
-class StreamDelta:
-    event: Literal["message", "reasoning"]
+class StreamDelta(BaseModel):
+    event: Literal["message", "reasoning"] = "message"
     text: str
 
 
@@ -136,9 +134,8 @@ class OpenAICompatibleClient:
             if reasoning:
                 yield StreamDelta(event="reasoning", text=reasoning)
 
-            content = delta.content
-            if content:
-                yield StreamDelta(event="message", text=content)
+            if delta.content:
+                yield StreamDelta(event="message", text=delta.content)
 
 
 @lru_cache

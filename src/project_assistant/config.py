@@ -14,7 +14,6 @@ class Settings(BaseSettings):
     llm_base_url: str = "http://localhost:1234/v1"
     llm_model: str = "google/gemma-4-12b-qat"
     reasoning_level: str = "high"
-    answer_system_prompt: str | None = None
 
     embedding_model: str = "text-embedding-bge-m3"
     embedding_query_prefix: str = ""

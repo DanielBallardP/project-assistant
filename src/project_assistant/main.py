@@ -6,7 +6,6 @@ from typing import Annotated, Literal
 
 import httpx
 import openai
-from chromadb.errors import ChromaError
 from fastapi import Depends, FastAPI, Header, HTTPException
 from fastapi.responses import StreamingResponse
 from fastapi.staticfiles import StaticFiles
@@ -18,16 +17,28 @@ from project_assistant.llm import (
     ChatMessage,
     EmbeddingClient,
     LLMClient,
-    StreamDelta,
     get_embedding_client,
     get_llm_client,
 )
-from project_assistant.rag.answering import build_messages, to_sources
+from project_assistant.rag.answering import ABSTAIN_ANSWER, build_messages, split_citations, to_sources
 from project_assistant.rag.retrieval import retrieve
 from project_assistant.rag.store import VectorStore
 
 STATIC_DIR = Path(__file__).parent / "static"
 logger = logging.getLogger(__name__)
+
+RETRIEVAL_ERROR = "Document retrieval failed. Please try again."
+LLM_ERROR = "The language model could not generate a response."
+
+
+def sse(event: str | None, data: dict) -> str:
+    """Format a Server-Sent Event (SSE) string.
+
+    If event is None, the default "message" event type is used.
+    """
+    event_line = f"event: {event}\n" if event else ""
+    data_line = f"data: {json.dumps(data, ensure_ascii=False)}\n"
+    return f"{event_line}{data_line}\n"
 
 
 async def get_http_client() -> AsyncIterator[httpx.AsyncClient]:
@@ -128,16 +139,11 @@ def create_app() -> FastAPI:
             Header(alias="X-Demo-Role"),
         ] = "mitarbeiter",
     ) -> StreamingResponse:
-        def sse(event: str | None, data: dict) -> str:
-            """Format a Server-Sent Event (SSE) string.
-
-            If event is None, the default "message" event type is used.
-            """
-            event_line = f"event: {event}\n" if event else ""
-            data_line = f"data: {json.dumps(data, ensure_ascii=False)}\n"
-            return f"{event_line}{data_line}\n"
 
         async def event_source() -> AsyncIterator[str]:
+            # The response headers are already sent while this generator runs, so
+            # an exception can no longer become an HTTP error. Catching broadly is
+            # deliberate here: log the details, send the client a generic message.
             try:
                 store = store_factory()
                 hits = await retrieve(
@@ -146,59 +152,51 @@ def create_app() -> FastAPI:
                     store=store,
                     role=role,
                 )
-            except (
-                ChromaError,
-                IndexError,
-                KeyError,
-                openai.APIError,
-                RuntimeError,
-                TypeError,
-                ValueError,
-            ):
+            except Exception:
                 logger.exception("Document retrieval failed")
-                yield sse(
-                    event="error",
-                    data={"error": "Document retrieval failed. Please try again."},
-                )
+                yield sse("error", {"error": RETRIEVAL_ERROR})
                 return
 
-            messages = build_messages(request.message, hits, get_settings().answer_system_prompt)
             yield sse(
-                event="sources",
-                data={"sources": [source.model_dump() for source in to_sources(hits)]},
+                "sources",
+                {"sources": [source.model_dump() for source in to_sources(hits)]},
             )
 
+            if not hits:
+                # Nothing to ground an answer on, so the LLM is not called at all.
+                yield sse(None, {"token": ABSTAIN_ANSWER})
+                yield sse("citations", {"cited": [], "abstained": True})
+                yield sse("done", {})
+                return
+
+            answer_parts: list[str] = []
             try:
+                messages = build_messages(request.message, hits)
                 async for delta in llm.chat_stream(messages):
-                    if isinstance(delta, str):
-                        delta = StreamDelta(event="message", text=delta)
-                    elif isinstance(delta, tuple) and len(delta) == 2:
-                        event, text = delta
-                        delta = StreamDelta(event=event, text=text)
-                    elif isinstance(delta, dict):
-                        delta = StreamDelta(
-                            event=delta.get("event", "message"),
-                            text=delta.get("text", ""),
-                        )
                     if not delta.text:
                         continue
                     if delta.event == "reasoning":
-                        yield sse(
-                            event="reasoning",
-                            data={"reasoning": delta.text},
-                        )
+                        yield sse("reasoning", {"reasoning": delta.text})
                     else:
-                        # JSON escaping keeps newline characters inside one SSE data line.
-                        yield f"data: {json.dumps({'token': delta.text}, ensure_ascii=False)}\n\n"
-            except openai.APIError:
+                        answer_parts.append(delta.text)
+                        yield sse(None, {"token": delta.text})
+            except Exception:
                 logger.exception("LLM streaming failed")
-                yield sse(
-                    event="error",
-                    data={"error": "The language model could not generate a response."},
-                )
+                yield sse("error", {"error": LLM_ERROR})
                 return
 
-            yield sse(event="done", data={})
+            answer = "".join(answer_parts)
+            cited, unknown = split_citations(answer, hits)
+            if unknown:
+                logger.warning("Answer cites documents never retrieved: %s", unknown)
+            yield sse(
+                "citations",
+                {
+                    "cited": cited,
+                    "abstained": not cited and ABSTAIN_ANSWER in answer,
+                },
+            )
+            yield sse("done", {})
 
         return StreamingResponse(event_source(), media_type="text/event-stream")
 
