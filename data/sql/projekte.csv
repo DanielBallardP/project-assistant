@@ -1,0 +1,6 @@
+id,name,kunde_id,status,projektleiter,start_datum,ende_geplant,budget_eur
+P-2041,Prozessleitungen Erweiterung Halle 3,1,In Ausführung,Hannes Brandstetter,2026-03-02,2027-02-26,1850000
+P-2043,Fernwärme-Hauptleitung Abschnitt Süd,2,In Ausführung,Sabine Wimmer,2026-05-04,2027-04-30,2400000
+P-2038,Dampfleitung Brauerei,3,Abgeschlossen,Hannes Brandstetter,2025-11-03,2026-06-18,620000
+P-2047,Kühlwasserring Rechenzentrum,4,Planung,Markus Leitner,2027-01-11,2027-09-30,980000
+P-2050,Wasserstoffleitung Pilotanlage,5,Angebot,Sabine Wimmer,2027-03-01,2027-12-15,1300000

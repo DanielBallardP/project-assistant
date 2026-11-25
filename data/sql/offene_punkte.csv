@@ -1,0 +1,9 @@
+id,projekt_id,beschreibung,prioritaet,status,faellig_am,verantwortlich
+OP-001,P-2041,Nachschweißung Schweißnaht SN-B-27 und Wiederholungsprüfung Strang B,hoch,offen,2026-12-03,Peter Gruber
+OP-002,P-2041,Isolierung Strang A fertigstellen,mittel,in Arbeit,2026-12-18,Fa. Thermotec
+OP-003,P-2041,Dokumentation der Röntgenprüfung nachreichen,niedrig,offen,2026-12-31,Elisabeth Rainer
+OP-004,P-2043,Lieferverzug Rohre (Rohrwerk Steyrtal GmbH) klären,hoch,in Arbeit,2026-11-30,Sabine Wimmer
+OP-005,P-2043,Baustellenzufahrt Abschnitt Süd mit der Gemeinde abstimmen,mittel,offen,2026-12-01,Sabine Wimmer
+OP-006,P-2038,Restmangel Isolierung Pumpenraum,niedrig,erledigt,2026-06-30,Hannes Brandstetter
+OP-007,P-2047,Hydraulische Berechnung Kühlwasserring freigeben,hoch,offen,2026-12-10,Markus Leitner
+OP-008,P-2050,Genehmigungsunterlagen vervollständigen,mittel,offen,,Sabine Wimmer

@@ -1,0 +1,31 @@
+id,projekt_id,bezeichnung,menge,einheit,kosten_eur,lieferant
+1,P-2041,Edelstahlrohr 1.4571 DN 100,12,m,1476.29,Rohrhandel Mayr
+2,P-2043,Edelstahlflansch 1.4571 DN 80,16,Stk,3689.29,Rohrhandel Mayr
+3,P-2038,Flanschdichtung DN 300,10,Stk,411.36,Flanschtechnik Hofer GmbH
+4,P-2047,Edelstahl-Absperrarmatur DN 100,9,Stk,3585.41,Rohrwerk Steyrtal GmbH
+5,P-2050,Edelstahlrohr 1.4571 DN 300,12,m,576.83,Rohrwerk Steyrtal GmbH
+6,P-2041,Edelstahlflansch 1.4571 DN 100,30,Stk,2709.8,Flanschtechnik Hofer GmbH
+7,P-2043,Flanschdichtung DN 200,27,Stk,708.32,Rohrwerk Steyrtal GmbH
+8,P-2038,Edelstahl-Absperrarmatur DN 80,6,Stk,10052.23,Armaturen Koller GmbH
+9,P-2047,Edelstahlrohr 1.4571 DN 100,100,m,16120.76,Flanschtechnik Hofer GmbH
+10,P-2050,Edelstahlflansch 1.4571 DN 150,8,Stk,634.71,Rohrhandel Mayr
+11,P-2041,Flanschdichtung DN 300,29,Stk,1267.03,Rohrhandel Mayr
+12,P-2043,Edelstahl-Absperrarmatur DN 50,8,Stk,2961.46,Flanschtechnik Hofer GmbH
+13,P-2038,Edelstahlrohr 1.4571 DN 150,24,m,3181.44,Rohrwerk Steyrtal GmbH
+14,P-2047,Edelstahlflansch 1.4571 DN 200,28,Stk,8233.72,Rohrwerk Steyrtal GmbH
+15,P-2050,Flanschdichtung DN 50,18,Stk,429.46,Rohrwerk Steyrtal GmbH
+16,P-2041,Edelstahl-Absperrarmatur DN 200,5,Stk,6445.48,Rohrhandel Mayr
+17,P-2043,Edelstahlrohr 1.4571 DN 300,24,m,3099.35,Rohrwerk Steyrtal GmbH
+18,P-2038,Edelstahlflansch 1.4571 DN 50,12,Stk,591.41,Flanschtechnik Hofer GmbH
+19,P-2047,Flanschdichtung DN 100,35,Stk,337.57,Rohrhandel Mayr
+20,P-2050,Edelstahl-Absperrarmatur DN 200,4,Stk,3654.15,Rohrwerk Steyrtal GmbH
+21,P-2041,Edelstahlrohr 1.4571 DN 300,100,m,13599.02,Rohrhandel Mayr
+22,P-2043,Edelstahlflansch 1.4571 DN 200,13,Stk,4080.77,Flanschtechnik Hofer GmbH
+23,P-2038,Flanschdichtung DN 150,30,Stk,1276.86,Rohrwerk Steyrtal GmbH
+24,P-2047,Edelstahl-Absperrarmatur DN 50,7,Stk,4655.29,Armaturen Koller GmbH
+25,P-2050,Edelstahlrohr 1.4571 DN 80,24,m,1185.75,Rohrwerk Steyrtal GmbH
+26,P-2041,Edelstahlflansch 1.4571 DN 200,26,Stk,1405.91,Rohrhandel Mayr
+27,P-2043,Flanschdichtung DN 80,11,Stk,472.56,Armaturen Koller GmbH
+28,P-2038,Edelstahl-Absperrarmatur DN 50,12,Stk,7890.64,Flanschtechnik Hofer GmbH
+29,P-2047,Edelstahlrohr 1.4571 DN 50,24,m,1687.62,Rohrhandel Mayr
+30,P-2050,Edelstahlflansch 1.4571 DN 200,17,Stk,962.41,Rohrhandel Mayr

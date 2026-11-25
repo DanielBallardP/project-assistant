@@ -14,3 +14,4 @@ wheels/
 data/chroma/
 raw_*.txt
 body.json
+data/project.db
